@@ -138,7 +138,7 @@ class MediaPlayer:
         self.voice_client = None
         self.voice_clients = {}
         self.queue = []
-        self.ffmpeg_path = r"src\ffmpeg\ff.exe"
+        self.ffmpeg_path = r"src\ffmpeg\ffmpeg.exe"
         self.opts = {'options': '-vn -loglevel trace',
                     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"}
         self._loop = False
