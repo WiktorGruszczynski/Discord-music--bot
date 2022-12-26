@@ -1,0 +1,12 @@
+{
+    "prefix": "!",
+    "private": {
+        "discord": {
+            "token": "TOKEN"
+        },
+        "spotify": {
+            "client id": "CLIENT_ID",
+            "api key": "CLIENT_SECRET"
+        }
+    }
+}
