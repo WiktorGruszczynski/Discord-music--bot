@@ -9,4 +9,6 @@ Discord bot is a application that allows for streaming music through discord ser
 - Install **youtube_dl** module using following command `pip install youtube_dl`
 - Install **Spotipy** module using following command `pip install spotipy`
 
-
+## Commands
++ `play <url/title>`
++ `
