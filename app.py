@@ -8,13 +8,10 @@ settings_path = "src/settings.json"
 with open(settings_path ,"r") as file:
     info = json.loads(file.read())
 
-
 token = info["private"]["discord"]["token"]
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
-
 bot = MediaPlayer(client=client)
-
 
 
 def get_prefix():
@@ -77,8 +74,5 @@ async def on_message(msg):
 
         elif msg.content.startswith("queue"):
             await bot.print_queue(msg)
-
-
-
 
 client.run(token)
