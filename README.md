@@ -10,5 +10,12 @@ Discord bot is a application that allows for streaming music through discord ser
 - Install **Spotipy** module using following command `pip install spotipy`
 
 ## Commands
-+ `play <url/title>`
-+ `
++ `play <url/title>`  Plays audio from url, playlist or song name
++ `pause` Pauses currently playing song
++ `resume` Resumes playing music
++ `skip` Starts playing next song
++ `loop` Keeps playing one song
++ `leave` Disconnects from a voice channel
++ `prefix <new prefix>` Sets a new prefix for commands
++ `queue` Prints queued songs
++ `ping` Test command resulting in bot sending "pong" message on chat
