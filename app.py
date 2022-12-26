@@ -48,8 +48,6 @@ async def on_message(msg):
 
         if msg.content.startswith("ping"):
             await msg.channel.send("pong!")
-            print(msg.channel)
-
             
         elif msg.content.startswith("play"):
             await bot.play(msg)
