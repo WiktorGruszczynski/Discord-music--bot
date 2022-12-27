@@ -1,7 +1,7 @@
 # Discord music bot
 
 ## Introdution
-Discord bot is a application that allows for streaming music through discord server. Discord bot streams audio using FFmpeg multimedia framework which is able to handle audio. Appplication provides streaming audio from playlist and individual songs from youtube and spotify.
+Discord bot is a application that allows for streaming music through discord server. Discord bot streams audio using FFmpeg multimedia framework which is able to handle audio. Appplication provides streaming audio from playlist and individual songs from youtube, soundcloud and spotify.
 
 ## Requirements
 - **FFmpeg** executable file is required, for discord music bot to work. You can download FFmpeg from official website [here](https://ffmpeg.org/download.html). Then you have to move `ffmpeg.exe` to `src\ffmpeg` folder in order to make everything works.
@@ -17,5 +17,5 @@ Discord bot is a application that allows for streaming music through discord ser
 + `loop` Keeps playing one song
 + `leave` Disconnects from a voice channel
 + `prefix <new prefix>` Sets a new prefix for commands
-+ `queue` Prints queued songs
++ `queue <page number>` Prints queued songs
 + `ping` Test command resulting in bot sending "pong" message on chat
