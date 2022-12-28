@@ -1,13 +1,13 @@
 import urllib.request as request
+import youtube_dl
+import unidecode
 import asyncio
 import discord
-import youtube_dl
 import spotipy
+import message
+import math
 import json
 import re
-import message
-import unidecode
-import math
 
 
 def youtube_search(quote:str):
@@ -212,7 +212,7 @@ class MediaPlayer:
         self.paused = False
         self.iter = 0
         self.sp_creds = spotify_credentials()
-    
+
 
     async def extract_playlist(self, ctx, url:str):
         if url.startswith("https://www.youtube.com/playlist?"):
@@ -312,13 +312,16 @@ class MediaPlayer:
                     await message.send_embed(ctx,title=f'Couldn`t play track "{source.title}"',url=None, color=0xff0000,name= "Error", thumbnail=None)
 
                 while self.paused != self.voice_clients[ctx.guild.id].is_playing(): 
-                    await asyncio.sleep(0.2)
+                    await asyncio.sleep(0.1)
+                
+                if self.voice_clients[ctx.guild.id].is_connected():
+                    self.iter+=1
 
-                self.iter+=1
                 if self._loop:
                     self.queue.insert(self.iter, self.queue[self.iter-1])
 
             if self.voice_clients[ctx.guild.id].is_playing()==False and self.paused==False:
+                print("queue cleared")
                 self.queue.clear()
 
 
@@ -384,8 +387,9 @@ class MediaPlayer:
         if self.voice_clients[ctx.guild.id] != None:
             self.voice_clients[ctx.guild.id].stop()
             await self.voice_clients[ctx.guild.id].disconnect()
-            self.queue.clear()
+            self.queue = []
             self.iter = 0
+            print(self.iter)
 
 
     async def print_queue(self, ctx):
@@ -395,12 +399,9 @@ class MediaPlayer:
         else:
             page = 1
 
-        
-        b = self.iter+(25*page)
-        if b > len(self.queue):
-            b = len(self.queue)
-
         a = self.iter+(25*page-25)
+        b = self.iter+(25*page)
+        if b > len(self.queue): b = len(self.queue)
 
         fields=[]
         for i in range(a, b):
@@ -412,4 +413,3 @@ class MediaPlayer:
 
             fields.append(f"{i-self.iter+1}. {text}")
         await message.send_embed(ctx, title=f"Queued songs page {page}", url=None, color=0xff0000, fields=fields, name="", thumbnail=None)
-        
