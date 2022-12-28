@@ -8,10 +8,13 @@ settings_path = "src/settings.json"
 with open(settings_path ,"r") as file:
     info = json.loads(file.read())
 
+
 token = info["private"]["discord"]["token"]
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
+
 bot = MediaPlayer(client=client)
+
 
 
 def get_prefix():
@@ -37,7 +40,6 @@ async def set_prefix(ctx):
 
     else:
         await ctx.channel.send(f'You cannot set "{new_prefix}" as a prefix!')
-
 
 
 @client.event
@@ -72,5 +74,7 @@ async def on_message(msg):
 
         elif msg.content.startswith("queue"):
             await bot.print_queue(msg)
+
+
 
 client.run(token)
