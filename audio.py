@@ -6,7 +6,6 @@ import spotipy
 import json
 import re
 import message
-from processor import *
 import unidecode
 import math
 
@@ -52,7 +51,6 @@ class YoutubeSource:
         try:
             ytdl = youtube_dl.YoutubeDL(self.options)
             loop = asyncio.get_event_loop()
-    
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
             metadata = data["formats"][0]["url"].split("&")
             self.duration = float([i for i in metadata if i.startswith("dur")][0].split('=')[1])
@@ -65,19 +63,33 @@ class YoutubeSource:
             if self.duration > 14400:
                 return 1
 
+
+            del metadata
+            return self
         except:
             return 1
 
-        del metadata
-        return self
-
-    async def youtube_playlist(self, url:str) -> list:
-        html = request.urlopen(url).read().decode("utf-8")
-        videos = re.findall(r"watch\?v=(\S{57})", html)
-
-        url_list = ["https://www.youtube.com/watch?v="+id[:11] for id in videos if id.endswith("\\")]
         
-        return url_list
+    async def youtube_playlist(self, url:str) -> list:
+        html = request.urlopen(url)
+
+        data = html.read().decode()
+
+        data = data.split("var ytInitialData = ")[1].split(";<")[0]
+        content = json.loads(data)["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][0]["tabRenderer"]["content"]
+        playlist = content["sectionListRenderer"]["contents"][0]["itemSectionRenderer"]["contents"][0]["playlistVideoListRenderer"]["contents"]
+
+        videos = []
+
+        for video in playlist:
+            video = video["playlistVideoRenderer"]
+            id = video["videoId"]
+            url = f"https://www.youtube.com/watch?v={id}"
+            title = video["title"]["runs"][0]["text"]
+            videos.append({"title":title, "url":url, "platform":"youtube"})
+
+        return videos
+
 
 
 class SpotifySource(YoutubeSource):
@@ -122,7 +134,7 @@ class SpotifySource(YoutubeSource):
                 name = track["track"]["name"]
                 title = f"{author} - {name}"
                 track_url = track["track"]["external_urls"]["spotify"]
-                list.append([title, track_url])
+                list.append({"title":title, "url":track_url, "platform":"spotify"})
             except:
                 pass
 
@@ -151,7 +163,6 @@ class SpotifySource(YoutubeSource):
         return songs
 
 
- 
 
 class SoundCloudSource:
     def __init__(self, options=None) -> None:
@@ -187,6 +198,7 @@ class SoundCloudSource:
         return self
 
 
+
 class MediaPlayer:
     def __init__(self, client) -> None:
         self.client = client
@@ -202,34 +214,16 @@ class MediaPlayer:
         self.sp_creds = spotify_credentials()
     
 
-    async def extract_playlist(self, ctx, url):
+    async def extract_playlist(self, ctx, url:str):
         if url.startswith("https://www.youtube.com/playlist?"):
             playlist = await YoutubeSource().youtube_playlist(url)
-            threads = []
-               
-            for url in playlist:
-                threads.append(BetterThread(target=asyncio.run, args=(YoutubeSource().youtube_audio(url))))
-                threads[-1].start()
-                
-            while any([thread.is_alive() for thread in threads]): await asyncio.sleep(0.1)
-
-            for result in threads:
-                if result.value != 1 and result.value.audio != None:
-                    self.queue.append(result.value)
+            for video in playlist:
+                self.queue.append(video)
 
         elif url.startswith("https://open.spotify.com/playlist"):
             playlist = await SpotifySource(credentials=self.sp_creds).spotify_playlist(url)
-            threads = []
-            for track in playlist:
-                threads.append(BetterThread(target=asyncio.run, args=(SpotifySource(credentials=self.sp_creds).spotify_audio(track[1]))))
-                threads[-1].start()
-
-                
-            while any([thread.is_alive() for thread in threads]): await asyncio.sleep(0.1)
-
-            for result in threads:
-                if result.value != 1 and result.value.audio != None:
-                    self.queue.append(result.value)
+            for song in playlist:
+                self.queue.append(song)
 
 
     async def extract_source(self, ctx, url):
@@ -259,12 +253,8 @@ class MediaPlayer:
             await track.spotify_audio(url)
             self.queue.append(track)
             
-
         elif "playlist" in url:
-            from time import time
-            t0=time()
             await self.extract_playlist(ctx, url)
-            print(time()-t0)
 
 
     async def join(self, ctx):
@@ -278,11 +268,10 @@ class MediaPlayer:
 
 
     async def play_audio(self, ctx, source: YoutubeSource|SpotifySource|SoundCloudSource):
-        
         player = discord.FFmpegPCMAudio(source.audio, executable=self.ffmpeg_path,**self.opts)
         self.voice_clients[ctx.guild.id].play(player)
 
-        await asyncio.sleep(0.25)
+        await asyncio.sleep(0.2)
         if self.voice_clients[ctx.guild.id].is_playing():
             if source.platform == "youtube":
                 color = 0xff0000
@@ -293,18 +282,34 @@ class MediaPlayer:
 
             await message.send_embed(ctx,title=source.title,url=source.url,color=color,name="Playing now",thumbnail=source.thumbnail)
         else:
-            await message.send_embed(ctx,title=f"Couldn't play track '{source.title}'",url=None, color=0xff0000,name= "Error",thumbnail=None)
+            if source.title == None:
+                source.title = self.queue[self.iter]["title"]
+            await message.send_embed(ctx,title=f'Couldn`t play track "{source.title}"',url=None, color=0xff0000,name= "Error",thumbnail=None)
 
 
     async def play_queue(self, ctx):
         if not self.voice_clients[ctx.guild.id].is_playing():
             for source in self.queue: 
+                if isinstance(source, dict): 
+                    platform = source["platform"]
+                    if platform == "youtube":
+                        track = YoutubeSource()
+                        await track.youtube_audio(source["url"])
+                        source = track
+
+                    elif platform == "spotify":
+                        track = SpotifySource(credentials=self.sp_creds)
+                        await track.spotify_audio(source["url"])
+                        source = track
+                
                 if source == 1:
                     continue
                 try:
                     await self.play_audio(ctx, source)
                 except:
-                    await message.send_embed(ctx,title=f"Couldn't play track '{source.title}'",url=None, color=0xff0000,name= "Error", thumbnail=None)
+                    if source.title == None:
+                        source.title = self.queue[self.iter]["title"]
+                    await message.send_embed(ctx,title=f'Couldn`t play track "{source.title}"',url=None, color=0xff0000,name= "Error", thumbnail=None)
 
                 while self.paused != self.voice_clients[ctx.guild.id].is_playing(): 
                     await asyncio.sleep(0.2)
@@ -379,7 +384,7 @@ class MediaPlayer:
         if self.voice_clients[ctx.guild.id] != None:
             self.voice_clients[ctx.guild.id].stop()
             await self.voice_clients[ctx.guild.id].disconnect()
-            self.queue.clear()
+            self.queue = []
             self.iter = 0
 
 
@@ -390,11 +395,20 @@ class MediaPlayer:
         else:
             page = 1
 
+        
         b = self.iter+(25*page)
         if b > len(self.queue):
             b = len(self.queue)
 
-        fields = [f"{i+1}. {self.queue[i].title}" for i in range(self.iter+(25*page-25), b)]
+        fields=[]
+        for i in range(self.iter+(25*page-25),b):
+            source = self.queue[i]
+            if isinstance(source, dict):
+                text = source["title"]
+            else:
+                text = source.title
+
+            fields.append(f"{i+1-self.iter}. {text}")
         await message.send_embed(ctx, title=f"Queued songs page {page}", url=None, color=0xff0000, fields=fields, name="", thumbnail=None)
 
         
