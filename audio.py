@@ -384,7 +384,7 @@ class MediaPlayer:
         if self.voice_clients[ctx.guild.id] != None:
             self.voice_clients[ctx.guild.id].stop()
             await self.voice_clients[ctx.guild.id].disconnect()
-            self.queue = []
+            self.queue.clear()
             self.iter = 0
 
 
@@ -400,15 +400,16 @@ class MediaPlayer:
         if b > len(self.queue):
             b = len(self.queue)
 
+        a = self.iter+(25*page-25)
+
         fields=[]
-        for i in range(self.iter+(25*page-25),b):
+        for i in range(a, b):
             source = self.queue[i]
             if isinstance(source, dict):
                 text = source["title"]
             else:
                 text = source.title
 
-            fields.append(f"{i+1-self.iter}. {text}")
+            fields.append(f"{i-self.iter+1}. {text}")
         await message.send_embed(ctx, title=f"Queued songs page {page}", url=None, color=0xff0000, fields=fields, name="", thumbnail=None)
-
         
